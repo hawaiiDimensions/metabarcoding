@@ -21,6 +21,7 @@ cleanup <- function(x) {
     
     x$PCR_cycles <- as.numeric(gsub('[^0-9]', '', x$PCR_cycles))
     x$DNA_Template <- as.numeric(gsub('[^0-9]', '', x$DNA_Template))
+    x$Primer[grep('ARFHCO', x$Primer)] <- gsub('[0-9]', '', x$Primer[grep('ARFHCO', x$Primer)])
     
     for(i in c('percent_DNA', 'percent_Reads', 'number_Reads', 'total_Reads')) x[, i] <- as.numeric(x[, i])
     
