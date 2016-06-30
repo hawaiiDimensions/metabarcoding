@@ -32,3 +32,6 @@ cleanup <- function(x) {
 
 diffMarkers <- cleanup(diffMarkers)
 pcrCycle <- cleanup(pcrCycle)
+
+write.table(diffMarkers, file='clean_diffMarkers.csv', sep=',', row.names=FALSE)
+write.table(pcrCycle, file='clean_pcrCycle.csv', sep=',', row.names=FALSE)
