@@ -11,13 +11,14 @@ pcrCycle <- read.csv('clean_pcrCycle.csv', as.is=TRUE)
 ## define constants, data and inits
 ## ================================
 
-## number of experiments
-nexpr <- 23
+## let x be the dataset to use
+x <- diffMarkers
 
-## number of reads
-set.seed(0)
-metabConsts <- list(N = nexpr,
-                   nread = rpois(nexpr, 10000))
+## constants and explanitory variables
+metabConsts <- list(npool = length(unique(x$Pool)),
+                    nread = tapply(x$total_Reads, x$Pool, max),
+                    amountDNA = tapply(x$amount_DNA, list(x$Pool, x$Specimen), max, na.rm=TRUE),
+                    primers = sort(unique(x$Primer)))
 
 a <- 4
 b <- 1
