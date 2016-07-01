@@ -57,3 +57,10 @@ plot(samples[, 'alpha'], type='l', xlim=c(0, 100))
 effectiveSize(samples[, 'alpha'])
 plot(density(samples[, 'alpha']));abline(v=a)
 plot(density(samples[, 'beta']));abline(v=b)
+
+
+## do MLE instead
+pump2 <- pump$newModel()
+pumpMCEM <- buildMCEM(model = pump2, latentNodes = 'theta',
+                      boxConstraints = list(list(c('alpha','beta'), c(0, Inf))))
+pumpMLE <- pumpMCEM()
