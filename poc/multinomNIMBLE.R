@@ -13,12 +13,25 @@ pcrCycle <- read.csv('clean_pcrCycle.csv', as.is=TRUE)
 
 ## let x be the dataset to use
 x <- diffMarkers
+if(length(unique(x$PCR_cycles)) == 1) {
+    treat <- 'Primer'
+} else {
+    treat <- 'PCR_cycles'
+}
 
 ## constants and explanitory variables
 metabConsts <- list(npool = length(unique(x$Pool)),
                     nread = tapply(x$total_Reads, x$Pool, max),
-                    amountDNA = tapply(x$amount_DNA, list(x$Pool, x$Specimen), max, na.rm=TRUE),
-                    primers = sort(unique(x$Primer)))
+                    ## rows of amountDNA correspond to pools, columns to specimens
+                    amountDNA = tapply(x$amount_DNA, list(x$Pool, x$Specimen), function(a) {
+                        if(all(is.na(a))) return(0)
+                        else return(max(a, na.rm=TRUE))
+                    }),
+                    treatment = sort(unique(x[, treat])))
+
+
+
+
 
 a <- 4
 b <- 1
@@ -27,6 +40,13 @@ pumpData <- list(x = rpois(ntime, pumpConsts$t * rgamma(ntime, a, b)))
 pumpInits <- list(alpha = 1, beta = 1,
                   theta = rep(0.1, pumpConsts$N))
 
+
+
+code <- nimbleCode({
+    y[1:K] ~ dmulti(p[1:K], n)
+    p[1:K] ~ ddirch(alpha[1:K])
+    log(alpha[1:K]) ~ dmnorm(alpha0[1:K], R[1:K, 1:K])
+})
 
 ## set-up the model
 metaBCode <- nimbleCode({
