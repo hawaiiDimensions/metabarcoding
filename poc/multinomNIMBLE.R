@@ -19,6 +19,13 @@ if(length(unique(x$PCR_cycles)) == 1) {
     treat <- 'PCR_cycles'
 }
 
+bla <- tapply(x$amount_DNA, list(as.factor(x$Pool), as.factor(x$Specimen), as.factor(x[, treat])), function(a) {
+    max(a, na.rm=TRUE)
+})
+
+
+## aggregate on amount by different things then index by those things
+
 ## constants and explanitory variables
 metabConsts <- list(npool = length(unique(x$Pool)),
                     nread = tapply(x$total_Reads, x$Pool, max),
