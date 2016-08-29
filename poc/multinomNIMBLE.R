@@ -1,8 +1,76 @@
-library(coda)
-library(igraph)
 library(nimble)
 
 setwd('~/Dropbox/hawaiiDimensions/metabarcoding/poc')
+
+## simulate data
+N <- 1000
+alpha <- 0.5
+amount_DNA <- runif(N, 1, 100)
+number_Reads <- rmultinom(1, N * 1000, rdirch(1, alpha*amount_DNA))
+
+
+## the model as NIMBLE code
+modCode <- nimbleCode({
+    ## loop over all data
+    for(i in 1:N) {
+        ## u is the random intercept
+        mu[i] <- b0 + b1*x1[i] + u[g[i]]
+        y[i] ~ dnorm(mu[i], sd = 1/sqrt(tau))
+    }
+    
+    ## random group intercepts
+    for(j in 1:Ng) {
+        u[j] ~ dnorm(0, sd = 1/sqrt(tau_g))
+    }
+    
+    ## priors
+    b0 ~ dnorm(0, sd = 1000)
+    b1 ~ dnorm(0, sd = 1000)
+    tau ~ dgamma(0.001, 0.001)
+    tau_g ~ dgamma(0.001, 0.001)
+})
+
+
+## model constants, data and inits
+modConstants <- list(N = n, Ng = ng, x1 = x1, g = g)
+modData <- list(y = y)
+modInits <- list(b0 = 0, b1 = 1, tau = 1, tau_g = 1, u = rep(0, ng))
+
+## build model
+mod <- nimbleModel(code = modCode, name = 'mod', constants = modConstants, 
+                   data = modData, inits = modInits)
+
+Cmod <- compileNimble(mod)
+
+modConf <- configureMCMC(mod)
+modConf$addMonitors(c('b0', 'b1', 'tau', 'tau_g'))
+modConf$addSampler(target = c('tau', 'tau_g'), type = 'RW_block')
+modConf$setThin(50)
+
+modMCMC <- buildMCMC(modConf)
+CmodMCMC <- compileNimble(modMCMC, project = mod)
+
+N <- 1000
+burn <- 50
+niter <- (N + burn) * modConf$thin
+CmodMCMC$run(niter)
+
+samp <- as.matrix(CmodMCMC$mvSamples)
+
+
+plot(samp[-(1:50), 'b0'], type = 'l')
+abline(h = b0, col = 'red')
+acf(samp[-(1:50), 'b0'])
+
+plot(samp[-(1:50), 'b1'], type = 'l')
+abline(h = b1, col = 'red')
+
+plot(samp[-(1:50), 'tau_g'], type = 'l')
+abline(h = 1/sig_g^2, col = 'red')
+acf(samp[-(1:50), 'tau_g'])
+
+
+
 
 diffMarkers <- read.csv('clean_diffMarkers.csv', as.is=TRUE)
 pcrCycle <- read.csv('clean_pcrCycle.csv', as.is=TRUE)
