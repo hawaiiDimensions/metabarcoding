@@ -14,9 +14,18 @@ totReads <- acast(melt(diffMarkers, c('Primer', 'Pool'), 'total_Reads'), Primer 
                   value.var =  'value', max, na.rm = TRUE, fill = 0)
 numReads <- acast(melt(diffMarkers, c('Primer', 'Pool', 'Specimen'), 'number_Reads'), Primer ~ Pool ~ Specimen, 
                       value.var =  'value', max, na.rm = TRUE, fill = 0)
-## simpler than this!
-amountDNA <- acast(melt(diffMarkers, c('Primer', 'Pool', 'Specimen'), 'amount_DNA'), Primer ~ Pool ~ Specimen, 
+amountDNA <- acast(melt(diffMarkers, c('Pool', 'Specimen'), 'amount_DNA'), Pool ~ Specimen, 
                    value.var =  'value', max, na.rm = TRUE, fill = 0)
+
+poolSpec <- acast(melt(diffMarkers, c('Pool', 'Specimen'), 'number_Reads'), Pool ~ Specimen, 
+                  value.var =  'value', sum, na.rm = TRUE, fill = 0)
+primerPool <- acast(melt(diffMarkers, c('Primer', 'Pool'), 'number_Reads'), Primer ~ Pool, 
+                  value.var =  'value', sum, na.rm = TRUE, fill = 0)
+primerSpec <- acast(melt(diffMarkers, c('Primer', 'Specimen'), 'number_Reads'), Primer ~ Specimen, 
+                    value.var =  'value', sum, na.rm = TRUE, fill = 0)
+nPrimerSpec <- acast(melt(diffMarkers, c('Primer', 'Specimen'), 'number_Reads'), Primer ~ Specimen, 
+                    value.var =  'value', length, fill = 0)
+
 
 ## simulate data
 Npool <- 1000
