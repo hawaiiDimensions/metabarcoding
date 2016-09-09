@@ -1,55 +1,51 @@
 library(nimble)
-library(plyr)
-library(reshape2)
 
 setwd('~/Dropbox/hawaiiDimensions/metabarcoding/poc')
 
 ## read data for calibrating simulation
 diffMarkers <- read.csv('clean_diffMarkers.csv', as.is=TRUE)
-diffMarkers[diffMarkers$Specimen == diffMarkers$Specimen[1], c("Primer", "Pool", "number_Reads", "total_Reads", "amount_DNA")]
-
-head(melt(diffMarkers, c('Primer', 'Pool'), 'total_Reads'))
-
-totReads <- acast(melt(diffMarkers, c('Primer', 'Pool'), 'total_Reads'), Primer ~ Pool, 
-                  value.var =  'value', max, na.rm = TRUE, fill = 0)
-numReads <- acast(melt(diffMarkers, c('Primer', 'Pool', 'Specimen'), 'number_Reads'), Primer ~ Pool ~ Specimen, 
-                      value.var =  'value', max, na.rm = TRUE, fill = 0)
-amountDNA <- acast(melt(diffMarkers, c('Pool', 'Specimen'), 'amount_DNA'), Pool ~ Specimen, 
-                   value.var =  'value', max, na.rm = TRUE, fill = 0)
-
-poolSpec <- acast(melt(diffMarkers, c('Pool', 'Specimen'), 'number_Reads'), Pool ~ Specimen, 
-                  value.var =  'value', sum, na.rm = TRUE, fill = 0)
-primerPool <- acast(melt(diffMarkers, c('Primer', 'Pool'), 'number_Reads'), Primer ~ Pool, 
-                  value.var =  'value', sum, na.rm = TRUE, fill = 0)
-primerSpec <- acast(melt(diffMarkers, c('Primer', 'Specimen'), 'number_Reads'), Primer ~ Specimen, 
-                    value.var =  'value', sum, na.rm = TRUE, fill = 0)
-nPrimerSpec <- acast(melt(diffMarkers, c('Primer', 'Specimen'), 'number_Reads'), Primer ~ Specimen, 
-                    value.var =  'value', length, fill = 0)
-
 
 ## simulate data
-Npool <- 1000
-Nreads <- Npool * 1000
-a <- 0.5
-amount_DNA <- runif(Npool, 1, 100)
-number_Reads <- as.vector(rmultinom(1, Nreads, rdirch(1, a*amount_DNA)))
-plot(amount_DNA, number_Reads)
+
+## number of pools
+Npool <- 100
+
+## number of spp
+Nspp <- 10
+
+## number of total reads per pool
+Nreads <- round(runif(Npool, 5000, 30000))
+
+## amount of DNA input per spp per pool (pool = rows; spp = columns)
+amount_DNA <- matrix(runif(Nspp*Npool, 1, 100), nrow = Npool, ncol = Nspp)
+
+## number of reads per spp per pool (pool = rows; spp = columns)
+number_Reads <- t(sapply(1:nrow(amount_DNA), function(i) rmulti(1, Nreads[i], rdirch(1, amount_DNA[i, ]*a))))
+
+## coefficients
+a <- seq(0.1, 10, length = Nspp)
 
 ## the model as NIMBLE code
 modCode <- nimbleCode({
-    alpha[1:Npool] <- x[1:Npool] * a
-    p[1:Npool] ~ ddirch(alpha[1:Npool])
-    y[1:Npool] ~ dmulti(p[1:Npool], Nreads)
+    for(i in 1:Npool) {
+        alpha[i, 1:Nspp] <- x[i, 1:Nspp] * a[1:Nspp]
+        p[i, 1:Nspp] ~ ddirch(alpha[i, 1:Nspp])
+        y[i, 1:Nspp] ~ dmulti(p[i, 1:Nspp], Nreads[i])
+    }
     
     ## priors
-    a ~ dexp(0.00001)
+    for(j in 1:Nspp) {
+        a[j] ~ dexp(0.00001)
+    }
+
 })
 
 
 ## model constants, data and inits
-modConstants <- list(Nreads = Nreads, Npool = Npool, x = amount_DNA)
+modConstants <- list(Nreads = Nreads, Npool = Npool, Nspp = Nspp, x = amount_DNA)
 modData <- list(y = number_Reads)
-modInits <- list(a = 1, alpha = rep(1, Npool), p = rep(1/Npool, Npool))
+modInits <- list(a = rep(1, Nspp), alpha = matrix(1, nrow = Npool, ncol = Nspp), 
+                 p = matrix(rep(1/Nspp, Nspp), nrow = Npool, ncol = Nspp, byrow = TRUE))
 
 ## build model
 mod <- nimbleModel(code = modCode, name = 'mod', constants = modConstants, 
@@ -60,6 +56,7 @@ Cmod <- compileNimble(mod)
 modConf <- configureMCMC(mod)
 modConf$addMonitors('a')
 modConf$setThin(20)
+modConf$addSampler(target = sprintf('a[1:%s]', modConstants$Nspp), type = 'RW_block')
 
 modMCMC <- buildMCMC(modConf)
 CmodMCMC <- compileNimble(modMCMC, project = mod)
@@ -71,9 +68,5 @@ CmodMCMC$run(niter)
 
 samp <- as.matrix(CmodMCMC$mvSamples)
 
-par(mfrow = c(1, 2), mar = c(3, 2, 0, 1) + 0.1)
-plot(samp[-(1:burn), 'a'], type = 'l')
-abline(h = a, col = 'red')
-acf(samp[-(1:burn), 'a'])
-plot(density(samp[-(1:burn), 'a']))
-abline(v = a, col = 'red')
+plot(samp[-(1:burn), 1], type = 'l')
+abline(h = a[1])
