@@ -49,7 +49,7 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, thin = 20, N = 1000, bur
     niter <- (N + burn) * modConf$thin
     CmodMCMC$run(niter)
     
-    samp <- as.matrix(CmodMCMC$mvSamples)
+    samp <- as.matrix(CmodMCMC$mvSamples)[-(1:burn), ]
     
     return(samp)
 }
