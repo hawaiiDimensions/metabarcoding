@@ -2,9 +2,6 @@ library(nimble)
 
 setwd('~/Dropbox/hawaiiDimensions/metabarcoding/poc')
 
-## read data for calibrating simulation
-diffMarkers <- read.csv('clean_diffMarkers.csv', as.is=TRUE)
-
 ## simulate data
 
 ## number of pools
