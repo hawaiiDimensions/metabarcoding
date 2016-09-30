@@ -1,3 +1,5 @@
+library(socorro)
+
 setwd('~/Dropbox/hawaiiDimensions/metabarcoding/size_classes')
 
 ## data from edward's sorting 
@@ -53,5 +55,49 @@ axis(2, at = par('usr')[4] - 0.1*diff(par('usr')[3:4]), labels = 'counts:', tick
 
 text((cuts[-1] + cuts[-length(cuts)]) / 2, rep(par('usr')[4] - 0.1*diff(par('usr')[3:4]), length(cuts) - 1),
      labels = counts)
+
+dev.off()
+
+
+## DNA versus length
+sizeDNA <- read.table('size_mass_dna.txt', sep = '\t', header=TRUE, as.is = TRUE)
+
+pdf('fig_sizeDNA_log.pdf', width = 5, height = 5)
+par(mar = c(3, 3, 0, 0) + 0.5, mgp = c(2.5, 1, 0))
+
+plot(sizeDNA$mm_Length, sizeDNA$mgDNA, log = 'xy', axes = FALSE, 
+     xlab = 'Length (mm)', ylab = 'Amount DNA (mg)', xlim = c(0.5, 15), 
+     panel.first = {
+         for(i in 1:(length(cuts) - 1)) {
+             rect(xleft = ifelse(cuts[i] == 0, 10^par('usr')[1], cuts[i]), 
+                  xright = cuts[i+1], 
+                  ybottom = 10^par('usr')[3], ytop = 10^par('usr')[4],
+                  col = c('gray75', 'gray95')[i %% 2 + 1], border = NA)
+         }
+         abline(v = cuts, col = 'white')
+     })
+
+logAxis(1)
+logAxis(2)
+
+dev.off()
+
+
+pdf('fig_sizeDNA_linear.pdf', width = 5, height = 5)
+par(mar = c(3, 3, 0, 0) + 0.5, mgp = c(2.5, 1, 0))
+
+plot(sizeDNA$mm_Length, sizeDNA$mgDNA, axes = FALSE, 
+     xlab = 'Length (mm)', ylab = 'Amount DNA (mg)', xlim = range(cuts), 
+     panel.first = {
+         for(i in 1:(length(cuts) - 1)) {
+             rect(xleft = cuts[i], xright = cuts[i+1], 
+                  ybottom = par('usr')[3], ytop = par('usr')[4],
+                  col = c('gray75', 'gray95')[i %% 2 + 1], border = NA)
+         }
+         abline(v = cuts, col = 'white')
+     })
+
+axis(1)
+axis(2)
 
 dev.off()
