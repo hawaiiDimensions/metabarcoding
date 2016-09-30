@@ -1,4 +1,4 @@
-setwd('~/Dropbox/hawaiiDimensions/metabarcoding')
+setwd('~/Dropbox/hawaiiDimensions/metabarcoding/size_classes')
 
 ## data from edward's sorting 9/28/16
 x <- c(3.5, 5.5, 14, 2.5, 9, 12.5, 4.5, 6, 1, 3.5, 7, 2, 4.5, 4.5, 2.5, 
