@@ -45,7 +45,7 @@ plotProp <- function(x, col = 'white', ...) {
 
 ## vectors of nuclear v. mitochondrial marker names
 nuc <- c('18sMach', '18sSSU', '28sMach', 'H3')
-names(nuc) <- c('18sM', '18sSSU', '28sM', 'H3')
+names(nuc) <- c('18sM', '18sS', '28sM', 'H3')
 mit <- c('12s_', 'CytB_', 'ARFHCO', 'MCOHCO')
 names(mit) <- c('12s', 'CytB', 'ARF', 'MCO')
 
