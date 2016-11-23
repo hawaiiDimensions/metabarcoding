@@ -77,8 +77,8 @@ bayesR2 <- function(y, n, A) {
     ## total variance of Y
     varY <- var(as.vector(y))
     
-    varR <- apply(A, 1, function(a) {
-        yhat <- predictMultiDir(n, a)
+    varR <- sapply(1:nrow(A), function(i) {
+        yhat <- predictMultiDir(n, A[i, ])
         var(as.vector(y - yhat))
     })
     
