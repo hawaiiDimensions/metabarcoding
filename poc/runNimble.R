@@ -74,8 +74,13 @@ predictMultiDir <- function(n, a) {
 ## (one row per posterior sample)
 
 bayesR2 <- function(y, n, A) {
-    apply(A, 1, function(a) {
+    ## total variance of Y
+    varY <- var(as.vector(y))
+    
+    varR <- apply(A, 1, function(a) {
         yhat <- predictMultiDir(n, a)
-        
+        var(as.vector(y - yhat))
     })
+    
+    return(1 - mean(varR) / varY)
 }
