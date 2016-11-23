@@ -82,5 +82,8 @@ bayesR2 <- function(y, n, A) {
         var(as.vector(y - yhat))
     })
     
-    return(1 - mean(varR) / varY)
+    out <- c(1 - mean(varR) / varY, quantile(1 - varR / varY, c(0.025, 0.975)))
+    names(out) <- c('mean', 'ciLo', 'ciHi')
+    
+    return(out)
 }
