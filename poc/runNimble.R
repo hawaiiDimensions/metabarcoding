@@ -1,10 +1,14 @@
+## =============================================================
+## functions to run nimble model and calculate model predictions
+## and posterior R^2
+## =============================================================
+
 ## function to run nimble model
+## Nreads: number of total reads per pool
+## amount_DNA: amount of DNA input per spp per pool (pool = rows; spp = columns)
+## number_Reads: number of reads per spp per pool (pool = rows; spp = columns)
 
 runNimble <- function(Nreads, amount_DNA, number_Reads, thin = 20, N = 1000, burn = 300) {
-    ## Nreads: number of total reads per pool
-    ## amount_DNA: amount of DNA input per spp per pool (pool = rows; spp = columns)
-    ## number_Reads: number of reads per spp per pool (pool = rows; spp = columns)
-    
     ## number of pools
     Npool <- length(Nreads)
     
@@ -52,4 +56,26 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, thin = 20, N = 1000, bur
     samp <- as.matrix(CmodMCMC$mvSamples)[-(1:burn), ]
     
     return(samp)
+}
+
+## function to calculate predicted values for multinomial-dirichlet model
+## n is vector of number of trials (e.g. total number of reads)
+## a is a vector of parameter estimates for dirichlet distrib
+
+predictMultiDir <- function(n, a) {
+    outer(n, a/sum(a))
+}
+
+
+## function to calculate Bayesian R^2 (not general, only for multi-dir)
+## y is matrix of data (rows = diff values of n)
+## n is vector of number of rials
+## A is matrix of posterior parameter estimates for dirichlet dirstrib
+## (one row per posterior sample)
+
+bayesR2 <- function(y, n, A) {
+    apply(A, 1, function(a) {
+        yhat <- predictMultiDir(n, a)
+        
+    })
 }
