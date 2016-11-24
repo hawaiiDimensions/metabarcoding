@@ -1,6 +1,8 @@
 library(nimble)
+library(coda)
 library(plyr)
 library(reshape2)
+library(parallel)
 
 setwd('~/Dropbox/hawaiiDimensions/metabarcoding/poc')
 source('runNimble.R')
@@ -16,14 +18,23 @@ amountDNA <- acast(melt(diffMarkers, c('Pool', 'Specimen'), 'amount_DNA'), Pool 
                    value.var =  'value', max, na.rm = TRUE, fill = 0)
 
 ## number of reads per primer, pool, species combo (dim1:primer, dim2:pool, dim3:species)
-numReads <- acast(melt(diffMarkers, c('Primer', 'Pool', 'Specimen'), 'number_Reads'), Primer ~ Pool ~ Specimen, 
+numReads <- acast(melt(diffMarkers, c('Primer', 'Pool', 'Specimen'), 'number_Reads'), 
+                  Primer ~ Pool ~ Specimen, 
                   value.var =  'value', max, na.rm = TRUE, fill = 0)
 
-bla <- runNimble(totReads[8, ], amountDNA, numReads[8, , ], N = 10000, thin = 50, burn = 100)
+## loop over primers, fitting model to each and calculating: 
+## R2 
+## effective sample size
+## Geweke's convergence test
 
-plot(bla[-(1:100), 1], type = 'l')
-plot(density(bla[-(1:100), 1]))
-acf(bla[-(1:100), 1])
+outDiffMarkers <- lapply(1:nrow(totReads), funciton(i) {
+    ## model parameters
+    modPar <- runNimble(totReads[i, ], amountDNA, numReads[i, , ], 
+                        N = 10000, thin = 50, burn = 100)
+    
+    ## return R2 and (across all a's) min effective size and Geweke's test
+    return(bayesR2(numReads[i, , ], totReads[i, ], modPar), 
+           minESS = min(effectiveSize(modPar)), 
+           nGewekeFail = sum(abs(geweke.diag(bla)$z) > 1.96))
+})
 
-plot(bla[-(1:500), 1], ylim = range(bla[-(1:400), ]), type = 'l')
-for(i in 2:ncol(bla)) lines(bla[-(1:400), i])
