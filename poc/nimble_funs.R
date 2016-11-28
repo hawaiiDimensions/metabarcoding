@@ -14,7 +14,7 @@ library(parallel)
 ## amount_DNA: amount of DNA input per spp per pool (pool = rows; spp = columns)
 ## number_Reads: number of reads per spp per pool (pool = rows; spp = columns)
 
-runNimble <- function(Nreads, amount_DNA, number_Reads, thin = 20, N = 1000, burn = 300) {
+runNimble <- function(Nreads, amount_DNA, number_Reads, thin = 50, N = 10000, burn = 100) {
     ## number of pools
     Npool <- length(Nreads)
     
@@ -70,7 +70,7 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, thin = 20, N = 1000, bur
 ## dat: the data frame
 ## x: the explanitory variable that differs across experiments (e.g. marker, num cycle, etc)
 
-buildNRunMod <- function(dat, x) {
+buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 100) {
     ## number or reads for each primer and pool combination (rows:cycles, cols:pools)
     totReads <- acast(melt(dat, c(x, 'Pool'), 'total_Reads'), 
                       as.formula(paste(x, 'Pool', sep = ' ~ ')), 
@@ -93,7 +93,7 @@ buildNRunMod <- function(dat, x) {
     out <- mclapply(1:nrow(totReads), mc.cores = 4, FUN = function(i) {
         ## model parameters
         modPar <- runNimble(totReads[i, ], amountDNA, numReads[i, , ], 
-                            N = 10, thin = 1, burn = 1)
+                            N = N, thin = thin, burn = burn)
         
         ## return R2 and (across all a's) min effective size and Geweke's test
         return(list(par = modPar, 
