@@ -1,5 +1,5 @@
 setwd('~/Dropbox/hawaiiDimensions/metabarcoding/poc')
-source('runNimble.R')
+source('nimble_funs.R')
 
 diffMarkers <- read.csv('clean_diffMarkers.csv', as.is=TRUE)
 diffCycles <- read.csv('clean_pcrCycle.csv', as.is=TRUE)

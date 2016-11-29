@@ -50,7 +50,7 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, thin = 50, N = 10000, bu
     modConf <- configureMCMC(mod)
     modConf$addMonitors('a')
     modConf$setThin(thin)
-    modConf$addSampler(target = sprintf('a[1:%s]', modConstants$Nspp), 
+    modConf$addSampler(target = sprintf('a[1:%s]', modConstants$Nspp),
                        type = 'RW_block', control = list(scale = 4))
     
     modMCMC <- buildMCMC(modConf)
