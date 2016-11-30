@@ -15,6 +15,10 @@ library(parallel)
 ## number_Reads: number of reads per spp per pool (pool = rows; spp = columns)
 
 runNimble <- function(Nreads, amount_DNA, number_Reads, thin = 50, N = 10000, burn = 100) {
+    ## trim data down to only those species captured at least once
+    amount_DNA <- amount_DNA[, colSums(number_Reads) > 0]
+    number_Reads <- number_Reads[, colSums(number_Reads) > 0]
+    
     ## number of pools
     Npool <- length(Nreads)
     
