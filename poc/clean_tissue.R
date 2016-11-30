@@ -37,5 +37,11 @@ names(tHi) <- names(tLo) <- c('Pool', 'Freezer_RT', 'Specimen', 'amount_DNA',
                               'Total_mg_in_pool', 'Experiment', 'number_Reads', 'total_Reads')
 tissue <- rbind(tHi, tLo)
 
+## make experiment just refer to high v. low molec weight and freezer v. room tem
+tissue$Experiment <- gsub('[0-9]', '', tissue$Experiment)
+tissue$Experiment <- paste(substring(tissue$Experiment, 1, 1), 
+                           substring(tissue$Experiment, 2, 100), 
+                           sep = '_')
+
 ## NOTE: amount_DNA = mg of tissue, not extracted DNA
 write.csv(tissue, 'clean_tissue.csv', row.names = FALSE)
