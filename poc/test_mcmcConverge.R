@@ -19,7 +19,7 @@ numReads <- acast(melt(diffMarkers, c('Primer', 'Pool', 'Specimen'), 'number_Rea
                   value.var =  'value', max, na.rm = TRUE, fill = 0)
 
 mod <- mclapply(1:2, mc.cores = 2, FUN = function(i) {
-    runNimble(totReads[8, ], amountDNA, numReads[8, , ], N = 10000, thin = 100, burn = 5)
+    runNimble(totReads[8, ], amountDNA, numReads[8, , ], N = 8000, thin = 50, burn = 50)
 })
 
 save(mod, file = 'test_mcmc.RData')
