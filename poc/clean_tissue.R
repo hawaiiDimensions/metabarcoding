@@ -9,29 +9,33 @@ tissue <- tissue[, (1:ncol(tissue)) <= which(names(tissue) == 'Average_Prop_H_L'
 
 ## correct issue of missing info when no reads obtained:
 ## for low molecular weight
-
-tissue[is.na(tissue$Prop_Low), 'Sample.3'] <- paste('L', tissue$Sample[is.na(tissue$Prop_Low)], sep = '')
-tissue[is.na(tissue$Prop_Low), 'Reads.1'] <- 0
-tissue[is.na(tissue$Prop_Low), 'Prop_Low'] <- 0
-
-tapply(tissue$TotalReads.1, tissue$Sample.3, max, na.rm = TRUE)
-tapply(tissue$Reads.1, tissue$Sample.3, sum, na.rm = TRUE)
-
-
-tapply(tissue$TotalReads, tissue$Sample.2, max, na.rm = TRUE)
-tapply(tissue$Reads, tissue$Sample.2, sum, na.rm = TRUE)
-
-tissue[is.na(tissue$Prop_Low), 'TotalReads.1'] <- 0
+tissue[is.na(tissue$Prop_Low) | tissue$Prop_Low == 0, 'Sample.3'] <- 
+    paste('L', tissue$Sample[is.na(tissue$Prop_Low) | tissue$Prop_Low == 0],
+          sep = '')
+tissue[is.na(tissue$Prop_Low) | tissue$Prop_Low == 0, 'Reads.1'] <- 0
 
 ## for hi moleular weight
+tissue[is.na(tissue$Prop_High) | tissue$Prop_High == 0, 'Sample.2'] <- 
+    paste('H', tissue$Sample[is.na(tissue$Prop_High) | tissue$Prop_High == 0],
+          sep = '')
+tissue[is.na(tissue$Prop_High) | tissue$Prop_High == 0, 'Reads'] <- 0
+
+## correct total reads to be only those assigned:
+tissue$TotalReads.1 <- tapply(tissue$Reads.1, tissue$Sample.3, sum, 
+                              na.rm = TRUE)[tissue$Sample.3]
+tissue$TotalReads <- tapply(tissue$Reads, tissue$Sample.2, sum, 
+                              na.rm = TRUE)[tissue$Sample.2]
+
 
 ## combine low and hi molecular weight samples into tiddy format
-tissue <- rbind(tissue[, c('Sample', 'Freezer_RT', 'Pool', 'Taxon', 'mg_in_Pool', 
-                           'Total_mg_in_pool', 'Sample.2', 'Reads', 'TotalReads')], 
-                tissue[, c('Sample', 'Freezer_RT', 'Pool', 'Taxon', 'mg_in_Pool', 
-                           'Total_mg_in_pool', 'Sample.3', 'Reads.1', 'TotalReads.1')])
+tHi <- tissue[, c('Sample', 'Freezer_RT', 'Taxon', 'mg_in_Pool', 
+                  'Total_mg_in_pool', 'Sample.2', 'Reads', 'TotalReads')]
+tLo <- tissue[, c('Sample', 'Freezer_RT', 'Taxon', 'mg_in_Pool', 
+                  'Total_mg_in_pool', 'Sample.3', 'Reads.1', 'TotalReads.1')]
 
+names(tHi) <- names(tLo) <- c('Pool', 'Freezer_RT', 'Specimen', 'amount_DNA', 
+                              'Total_mg_in_pool', 'Experiment', 'number_Reads', 'total_Reads')
+tissue <- rbind(tHi, tLo)
 
-
-
-
+## NOTE: amount_DNA = mg of tissue, not extracted DNA
+write.csv(tissue, 'clean_tissue.csv', row.names = FALSE)
