@@ -15,10 +15,6 @@ library(parallel)
 ## number_Reads: number of reads per spp per pool (pool = rows; spp = columns)
 
 runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, burn = 50) {
-    ## trim data down to only those species captured at least once
-    amount_DNA <- amount_DNA[, colSums(number_Reads) > 0]
-    number_Reads <- number_Reads[, colSums(number_Reads) > 0]
-    
     ## number of pools
     Npool <- length(Nreads)
     
@@ -106,24 +102,36 @@ buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 50) {
     ## R2 
     ## effective sample size
     ## Geweke's convergence test
-    
     # out <- mclapply(1:nrow(totReads), mc.cores = 4, FUN = function(i) {
     out <- lapply(1:nrow(totReads), function(i) {
+        ## extract needed data
+        thisNreads <- totReads[i, ]
+        thisAmount_DNA <- amountDNA
+        thisNumber_Reads <- numReads[i, , ]
+        
+        ## trim data down to only those pools with any reads at all
+        thisAmount_DNA <- thisAmount_DNA[thisNreads > 0, ]
+        thisNumber_Reads <- thisNumber_Reads[thisNreads > 0, ]
+        thisNreads <- thisNreads[thisNreads > 0]
+    
+        ## trim data down to only those species captured at least once
+        thisAmount_DNA <- thisAmount_DNA[, colSums(thisNumber_Reads) > 0]
+        thisNumber_Reads <- thisNumber_Reads[, colSums(thisNumber_Reads) > 0]
+        
         ## model parameters
-        modPar <- try(runNimble(totReads[i, ], amountDNA, numReads[i, , ], 
-                            N = N, thin = thin, burn = burn))
+        modPar <- try(runNimble(thisNreads, thisAmount_DNA, thisNumber_Reads, 
+                                N = N, thin = thin, burn = burn))
         if(class(modPar) == 'try-error') browser()
         
         ## return R2 and (across all a's) min effective size and Geweke's test
-        out <- list(par = modPar, 
-                    summ = c(R2 = bayesR2(numReads[i, , ], totReads[i, ], modPar), 
-                             minESS = min(effectiveSize(modPar)), 
-                             nGewekeFail = sum(abs(geweke.diag(modPar)$z) > 1.96)))
+        out <- try(list(par = modPar, 
+                        summ = c(R2 = bayesR2(thisNumber_Reads, thisNreads, modPar), 
+                                 minESS = min(effectiveSize(modPar)), 
+                                 nGewekeFail = sum(abs(geweke.diag(modPar)$z) > 1.96))))
         
         if(class(out) == 'try-error') browser()
         return(out)
     })
-    
     
     ## extract posterior parameter samples and summary from output
     outPar <- lapply(out, function(x) x$par)
@@ -134,6 +142,7 @@ buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 50) {
     
     return(list(par = outPar, summ = outSumm))
 }
+
 
 ## function to calculate predicted values for multinomial-dirichlet model
 ## n is vector of number of trials (e.g. total number of reads)
