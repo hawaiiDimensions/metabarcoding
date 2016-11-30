@@ -88,7 +88,7 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, bu
 ## x: the explanitory variable that differs across experiments (e.g. marker, num cycle, etc)
 
 buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 50) {
-    ## number or reads for each primer and pool combination (rows:cycles, cols:pools)
+    ## number or reads for each primer and pool combination (rows:x, cols:pools)
     totReads <- acast(melt(dat, c(x, 'Pool'), 'total_Reads'), 
                       as.formula(paste(x, 'Pool', sep = ' ~ ')), 
                       value.var =  'value', max, na.rm = TRUE, fill = 0)
@@ -97,26 +97,31 @@ buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 50) {
     amountDNA <- acast(melt(dat, c('Pool', 'Specimen'), 'amount_DNA'), Pool ~ Specimen, 
                        value.var =  'value', max, na.rm = TRUE, fill = 0)
     
-    ## number of reads per primer, pool, species combo (dim1:cycles, dim2:pool, dim3:species)
+    ## number of reads per primer, pool, species combo (dim1:x, dim2:pool, dim3:species)
     numReads <- acast(melt(dat, c(x, 'Pool', 'Specimen'), 'number_Reads'), 
                       as.formula(paste(x, 'Pool', 'Specimen', sep = ' ~ ')),
                       value.var =  'value', max, na.rm = TRUE, fill = 0)
     
-    ## loop over primers, fitting model to each and calculating: 
+    ## loop over explanitory var, fitting model to each and calculating: 
     ## R2 
     ## effective sample size
     ## Geweke's convergence test
     
-    out <- mclapply(1:nrow(totReads), mc.cores = 4, FUN = function(i) {
+    # out <- mclapply(1:nrow(totReads), mc.cores = 4, FUN = function(i) {
+    out <- lapply(1:nrow(totReads), function(i) {
         ## model parameters
-        modPar <- runNimble(totReads[i, ], amountDNA, numReads[i, , ], 
-                            N = N, thin = thin, burn = burn)
+        modPar <- try(runNimble(totReads[i, ], amountDNA, numReads[i, , ], 
+                            N = N, thin = thin, burn = burn))
+        if(class(modPar) == 'try-error') browser()
         
         ## return R2 and (across all a's) min effective size and Geweke's test
-        return(list(par = modPar, 
+        out <- list(par = modPar, 
                     summ = c(R2 = bayesR2(numReads[i, , ], totReads[i, ], modPar), 
                              minESS = min(effectiveSize(modPar)), 
-                             nGewekeFail = sum(abs(geweke.diag(modPar)$z) > 1.96))))
+                             nGewekeFail = sum(abs(geweke.diag(modPar)$z) > 1.96)))
+        
+        if(class(out) == 'try-error') browser()
+        return(out)
     })
     
     
