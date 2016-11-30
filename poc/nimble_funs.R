@@ -50,8 +50,21 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, thin = 50, N = 10000, bu
     modConf <- configureMCMC(mod)
     modConf$addMonitors('a')
     modConf$setThin(thin)
+    
+    ## make block sampler have bigger step for variables with big estimated slopes
+    
+    m <- sapply(1:ncol(modConstants$x), function(i) {
+        lm(c(0, modData$y[, i]) ~ c(0, modConstants$x[, i]))$coefficients[2]
+    })
+    names(m) <- NULL
+    m[m <= 0] <- min(m[m > 0])
+    m <- 1 + 5 * (log(m) - log(min(m)))
+    
     modConf$addSampler(target = sprintf('a[1:%s]', modConstants$Nspp),
-                       type = 'RW_block', control = list(scale = 4))
+                       type = 'RW_block', 
+                       control = list(propCov = diag(m, modConstants$Nspp)))
+    
+    ## build mcmc
     
     modMCMC <- buildMCMC(modConf)
     CmodMCMC <- compileNimble(modMCMC, project = mod)
