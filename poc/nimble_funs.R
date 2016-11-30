@@ -14,7 +14,7 @@ library(parallel)
 ## amount_DNA: amount of DNA input per spp per pool (pool = rows; spp = columns)
 ## number_Reads: number of reads per spp per pool (pool = rows; spp = columns)
 
-runNimble <- function(Nreads, amount_DNA, number_Reads, thin = 50, N = 10000, burn = 100) {
+runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, burn = 50) {
     ## trim data down to only those species captured at least once
     amount_DNA <- amount_DNA[, colSums(number_Reads) > 0]
     number_Reads <- number_Reads[, colSums(number_Reads) > 0]
@@ -87,7 +87,7 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, thin = 50, N = 10000, bu
 ## dat: the data frame
 ## x: the explanitory variable that differs across experiments (e.g. marker, num cycle, etc)
 
-buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 100) {
+buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 50) {
     ## number or reads for each primer and pool combination (rows:cycles, cols:pools)
     totReads <- acast(melt(dat, c(x, 'Pool'), 'total_Reads'), 
                       as.formula(paste(x, 'Pool', sep = ' ~ ')), 
