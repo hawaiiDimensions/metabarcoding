@@ -84,6 +84,30 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, bu
 ## x: the explanitory variable that differs across experiments (e.g. marker, num cycle, etc)
 
 buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 50) {
+    ## format data
+    fdat <- .formatData(dat, x)
+    
+    # loop over explanitory var, fitting model to each and calculating:
+    # R2
+    # effective sample size
+    # Geweke's convergence test
+    # out <- mclapply(1:nrow(totReads), mc.cores = 4, FUN = function(i) {
+    out <- lapply(1:nrow(fdat[[1]]), function(i) {
+        .internalRunNimble(fdat, i, N, thin, burn)
+    })
+    
+    ## extract posterior parameter samples and summary from output
+    outPar <- lapply(out, function(x) x$par)
+    names(outPar) <- rownames(totReads)
+    
+    outSumm <- data.frame(rownames(totReads), t(sapply(out, function(x) x$summ)))
+    names(outSumm)[1] <- x
+    
+    return(list(par = outPar, summ = outSumm))
+}
+
+## helper function to get data into right format
+.formatData <- function(dat, x) {
     ## number or reads for each primer and pool combination (rows:x, cols:pools)
     totReads <- acast(melt(dat, c(x, 'Pool'), 'total_Reads'), 
                       as.formula(paste(x, 'Pool', sep = ' ~ ')), 
@@ -98,53 +122,57 @@ buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 50) {
                       as.formula(paste(x, 'Pool', 'Specimen', sep = ' ~ ')),
                       value.var =  'value', max, na.rm = TRUE, fill = 0)
     
-    # loop over explanitory var, fitting model to each and calculating:
-    # R2
-    # effective sample size
-    # Geweke's convergence test
-    out <- mclapply(1:nrow(totReads), mc.cores = 4, FUN = function(i) {
-        ## extract needed data
-        thisNreads <- totReads[i, ]
-        thisAmount_DNA <- amountDNA
-        thisNumber_Reads <- numReads[i, , ]
+    return(list(totReads, amountDNA, numReads))
+}
 
-        ## trim data down to only those pools with any reads at all
-        thisAmount_DNA <- thisAmount_DNA[thisNreads > 0, ]
-        thisNumber_Reads <- thisNumber_Reads[thisNreads > 0, ]
-        thisNreads <- thisNreads[thisNreads > 0]
 
-        ## trim data down to only those species captured at least once
-        thisAmount_DNA <- thisAmount_DNA[, colSums(thisNumber_Reads) > 0]
-        thisNumber_Reads <- thisNumber_Reads[, colSums(thisNumber_Reads) > 0]
+## helper function to prep already formatted data (fdat) for nimble model
+.prepData <- function(fdat, i) {
+    ## extract needed data
+    thisNreads <- fdat[[1]][i, ]
+    thisAmount_DNA <- fdat[[2]]
+    thisNumber_Reads <- fdat[[3]][i, , ]
+    
+    ## trim data down to only those pools with any reads at all
+    thisAmount_DNA <- thisAmount_DNA[thisNreads > 0, ]
+    thisNumber_Reads <- thisNumber_Reads[thisNreads > 0, ]
+    thisNreads <- thisNreads[thisNreads > 0]
+    
+    ## trim data down to only those species captured at least once
+    thisAmount_DNA <- thisAmount_DNA[, colSums(thisNumber_Reads) > 0]
+    thisNumber_Reads <- thisNumber_Reads[, colSums(thisNumber_Reads) > 0]
+    
+    return(list(thisNreads, thisAmount_DNA, thisNumber_Reads))
+}
 
-        ## model parameters
-        modPar <- try(runNimble(thisNreads, thisAmount_DNA, thisNumber_Reads,
-                                N = N, thin = thin, burn = burn))
-        if(class(modPar) == 'try-error') {
+## helper function to do all the nitty gritty of running and summarizing 
+## the nimble model
+.internalRunNimble <- function(fdat, i, N, thin, burn) {
+    ## extract needed data
+    pdat <- .prepData(fdat, i)
+    thisNreads <- pdat[[1]]
+    thisAmount_DNA <- pdat[[2]]
+    thisNumber_Reads <- pdat[[3]]
+    
+    ## model parameters
+    modPar <- try(runNimble(thisNreads, thisAmount_DNA, thisNumber_Reads,
+                            N = N, thin = thin, burn = burn))
+    
+    ## error catching
+    if(class(modPar) == 'try-error') {
+        return(list(par = NA, summ = NA))
+    } else {
+        ## return R2 and (across all a's) min effective size and Geweke's test
+        out <- try(list(par = modPar,
+                        summ = c(R2 = bayesR2(thisNumber_Reads, thisNreads, modPar),
+                                 minESS = min(effectiveSize(modPar)),
+                                 nGewekeFail = sum(abs(geweke.diag(modPar)$z) > 1.96))))
+        if(class(out) == 'try-error') {
             return(list(par = NA, summ = NA))
         } else {
-            ## return R2 and (across all a's) min effective size and Geweke's test
-            out <- try(list(par = modPar,
-                            summ = c(R2 = bayesR2(thisNumber_Reads, thisNreads, modPar),
-                                     minESS = min(effectiveSize(modPar)),
-                                     nGewekeFail = sum(abs(geweke.diag(modPar)$z) > 1.96))))
-            if(class(out) == 'try-error') {
-                return(list(par = NA, summ = NA))
-            } else {
-                return(out)
-            }
+            return(out)
         }
-    })
-    
-    
-    ## extract posterior parameter samples and summary from output
-    outPar <- lapply(out, function(x) x$par)
-    names(outPar) <- rownames(totReads)
-    
-    outSumm <- data.frame(rownames(totReads), t(sapply(out, function(x) x$summ)))
-    names(outSumm)[1] <- x
-    
-    return(list(par = outPar, summ = outSumm))
+    }
 }
 
 
