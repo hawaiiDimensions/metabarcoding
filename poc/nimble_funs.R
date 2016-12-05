@@ -35,6 +35,9 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, bu
         }
     })
     
+    ## dirichlet can't have alpha_i = 0, so add a little to any case where there are 0's
+    if(any(amount_DNA == 0)) amount_DNA <- amount_DNA + .Machine$double.eps
+    
     ## model constants, data and inits
     modConstants <- list(Nreads = Nreads, Npool = Npool, Nspp = Nspp, x = amount_DNA)
     modData <- list(y = number_Reads)
