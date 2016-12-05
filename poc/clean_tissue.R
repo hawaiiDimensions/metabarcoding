@@ -1,7 +1,6 @@
 setwd('~/Dropbox/hawaiiDimensions/metabarcoding/poc')
 
 library(xlsx)
-library(reshape2)
 
 ## load data
 tissue <- read.xlsx('Tissue_Pools_092016_Andy.xlsx', sheetIndex = 1, stringsAsFactors = FALSE)
@@ -42,6 +41,9 @@ tissue$Experiment <- gsub('[0-9]', '', tissue$Experiment)
 tissue$Experiment <- paste(substring(tissue$Experiment, 1, 1), 
                            substring(tissue$Experiment, 2, 100), 
                            sep = '_')
+
+## remove extraneous info from specimen names (i.e. body parts)
+tissue$Specimen <- gsub('_.*', '', tissue$Specimen)
 
 ## NOTE: amount_DNA = mg of tissue, not extracted DNA
 write.csv(tissue, 'clean_tissue.csv', row.names = FALSE)
