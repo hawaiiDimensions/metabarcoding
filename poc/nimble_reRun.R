@@ -33,10 +33,9 @@ reRunNimble <- function(dat, output, x) {
 
 
 ## re-run nimble where needed
-diffMarkerOutNew <- reRunNimble(diffMarkers, diffMarkerOut, 'Primer')
-diffCyclesOutNew <- reRunNimble(diffCycles, diffCyclesOut, 'PCR_cycles')
-diffTissueOutNew <- reRunNimble(diffTissue, diffTissueOut, 'Experiment')
-
+diffMarkerOut <- reRunNimble(diffMarkers, diffMarkerOut, 'Primer')
+diffCyclesOut <- reRunNimble(diffCycles, diffCyclesOut, 'PCR_cycles')
+diffTissueOut <- reRunNimble(diffTissue, diffTissueOut, 'Experiment')
 
 ## save it
-save(diffMarkerOutNew, diffCyclesOutNew, diffTissueOutNew, file = 'nimble_out.RData')
+save(diffMarkerOut, diffCyclesOut, diffTissueOut, file = 'nimble_out.RData')
