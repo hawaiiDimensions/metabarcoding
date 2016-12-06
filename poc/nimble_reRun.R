@@ -23,7 +23,7 @@ reRunNimble <- function(dat, output, x) {
     ## re-run for failures
     for(i in fail) {
         redo <- .internalRunNimble(d, i, N = 10000, thin = 50, burn = 50)
-        output[[2]][i, ] <- redo$summ
+        output[[2]][i, 2:6] <- redo$summ
         output[[1]][[i]] <- redo$par
     }
     
