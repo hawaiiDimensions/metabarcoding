@@ -181,25 +181,30 @@ buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 50) {
 
 ## function to calculate predicted values for multinomial-dirichlet model
 ## n is vector of number of trials (e.g. total number of reads)
-## a is a vector of parameter estimates for dirichlet distrib
+## x is explanitory var (matrix, nrow = length(n))
+## a is a vector of parameter estimates for dirichlet distrib (length = ncol(x))
 
-predictMultiDir <- function(n, a) {
-    outer(n, a/sum(a))
+predictMultiDir <- function(n, x, a) {
+    alpha <- t(t(x) * a)
+    alpha <- alpha / rowSums(alpha)
+    
+    as.vector(alpha) * rep(n, ncol(x))
 }
 
 
 ## function to calculate Bayesian R^2 (not general, only for multi-dir)
 ## y is matrix of data (rows = diff values of n)
 ## n is vector of number of rials
+## x is matrix of explanitory variable (same dim as y)
 ## A is matrix of posterior parameter estimates for dirichlet dirstrib
 ## (one row per posterior sample)
 
-bayesR2 <- function(y, n, A) {
+bayesR2 <- function(y, n, x, A) {
     ## total variance of Y
     varY <- var(as.vector(y))
     
     varR <- sapply(1:nrow(A), function(i) {
-        yhat <- predictMultiDir(n, A[i, ])
+        yhat <- predictMultiDir(n, x, A[i, ])
         var(as.vector(y - yhat))
     })
     
