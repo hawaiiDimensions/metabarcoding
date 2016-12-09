@@ -41,7 +41,7 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, bu
     ## model constants, data and inits
     modConstants <- list(Nreads = Nreads, Npool = Npool, Nspp = Nspp, x = amount_DNA)
     modData <- list(y = number_Reads)
-    modInits <- list(a = rep(1, Nspp), alpha = matrix(1, nrow = Npool, ncol = Nspp), 
+    modInits <- list(a = rep(0.1, Nspp), alpha = matrix(0.1, nrow = Npool, ncol = Nspp), 
                      p = matrix(rep(1/Nspp, Nspp), nrow = Npool, ncol = Nspp, byrow = TRUE))
     
     ## build model
@@ -167,7 +167,8 @@ buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 50) {
     } else {
         ## return R2 and (across all a's) min effective size and Geweke's test
         out <- try(list(par = modPar,
-                        summ = c(R2 = bayesR2(thisNumber_Reads, thisNreads, modPar),
+                        summ = c(R2 = bayesR2(thisNumber_Reads, thisNreads, 
+                                              thisAmount_DNA, modPar),
                                  minESS = min(effectiveSize(modPar)),
                                  nGewekeFail = sum(abs(geweke.diag(modPar)$z) > 1.96))))
         if(class(out) == 'try-error') {
