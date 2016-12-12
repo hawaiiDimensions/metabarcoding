@@ -9,12 +9,44 @@ library(plyr)
 library(reshape2)
 library(parallel)
 
+
+## nimble functions for the dirichlet-multinomial distribution
+
+ddirchmulti <- nimbleFunction(
+    run = function(x = double(1), alpha = double(1), size = double(1),
+                   log = integer(0, default = 0)) {
+        returnType(double(0))
+        alpha0 <- sum(alpha)
+        logProb <- log(size) + lbeta(alpha0, size) - 
+            sum(log(x[x > 0]) + lbeta(alpha[x > 0], x[x > 0]))
+        if(log) return(logProb)
+        else return(exp(logProb))
+    }
+)
+
+rdirchmulti <- nimbleFunction(
+    run = function(n = integer(0), alpha = double(1), size = double(1)) {
+        returnType(double(1))
+        ## use MCMCpack as it allows alpha_k = 0
+        p <- MCMCpack::rdirichlet(1, alpha)[1, ]
+        return(rmulti(1, size = size, prob = p))
+    }
+)
+
+registerDistributions(list(
+    ddirchmulti = list(
+        BUGSdist = 'ddirchmulti(alpha, size)'
+    )
+))
+
 ## function to run nimble model
 ## Nreads: number of total reads per pool
 ## amount_DNA: amount of DNA input per spp per pool (pool = rows; spp = columns)
 ## number_Reads: number of reads per spp per pool (pool = rows; spp = columns)
 
 runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, burn = 50) {
+    browser()
+    
     ## number of pools
     Npool <- length(Nreads)
     
@@ -25,8 +57,9 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, bu
     modCode <- nimbleCode({
         for(i in 1:Npool) {
             alpha[i, 1:Nspp] <- x[i, 1:Nspp] * a[1:Nspp]
-            p[i, 1:Nspp] ~ ddirch(alpha[i, 1:Nspp])
-            y[i, 1:Nspp] ~ dmulti(p[i, 1:Nspp], Nreads[i])
+            # p[i, 1:Nspp] ~ ddirch(alpha[i, 1:Nspp])
+            # y[i, 1:Nspp] ~ dmulti(p[i, 1:Nspp], Nreads[i])
+            y[i, 1:Nspp] ~ ddirchmulti(alpha[i, 1:Nspp], Nreads[i])
         }
         
         ## priors
@@ -36,17 +69,26 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, bu
     })
     
     ## dirichlet can't have alpha_i = 0, so add a little to any case where there are 0's
-    if(any(amount_DNA == 0)) amount_DNA <- amount_DNA + .Machine$double.eps
+    # if(any(amount_DNA == 0)) amount_DNA <- amount_DNA + .Machine$double.eps
     
     ## model constants, data and inits
     modConstants <- list(Nreads = Nreads, Npool = Npool, Nspp = Nspp, x = amount_DNA)
     modData <- list(y = number_Reads)
-    modInits <- list(a = rep(0.1, Nspp), alpha = matrix(0.1, nrow = Npool, ncol = Nspp), 
-                     p = matrix(rep(1/Nspp, Nspp), nrow = Npool, ncol = Nspp, byrow = TRUE))
+    modInits <- list(a = rep(1, Nspp), alpha = matrix(1, nrow = Npool, ncol = Nspp)#, 
+                     # p = matrix(rep(1/Nspp, Nspp), nrow = Npool, ncol = Nspp, byrow = TRUE)
+                     )
     
     ## build model
     mod <- nimbleModel(code = modCode, name = 'mod', constants = modConstants, 
                        data = modData, inits = modInits)
+    
+    
+    # mod$simulate('a')
+    # mod$a
+    # mod$calculate(mod$getDependencies(c('a')))
+    # mod$getLogProb('a')
+    
+    # browser()
     
     Cmod <- compileNimble(mod)
     
@@ -65,7 +107,7 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, bu
     
     modConf$addSampler(target = sprintf('a[1:%s]', modConstants$Nspp),
                        type = 'RW_block', 
-                       control = list(propCov = diag(m, modConstants$Nspp)))
+                       control = list(scale = 4))
     
     ## build mcmc
     
@@ -76,6 +118,7 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, bu
     CmodMCMC$run(niter)
     
     samp <- as.matrix(CmodMCMC$mvSamples)[-(1:burn), ]
+    samp
     
     return(samp)
 }
