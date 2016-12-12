@@ -13,20 +13,27 @@ library(parallel)
 ## nimble functions for the dirichlet-multinomial distribution
 
 ddirchmulti <- nimbleFunction(
-    run = function(x = double(1), alpha = double(1), size = double(1),
+    run = function(x = double(1), alpha = double(1), size = double(0),
                    log = integer(0, default = 0)) {
         returnType(double(0))
         alpha0 <- sum(alpha)
-        logProb <- log(size) + lbeta(alpha0, size) - 
-            sum(log(x[x > 0]) + lbeta(alpha[x > 0], x[x > 0]))
+        
+        ## new log prob that ignores 0's instead of throwing NaN/Inf
+        logProb <- log(size) + 
+            lgamma(alpha0) + lgamma(size) - lgamma(alpha0 + size) -
+            sum(log(x[x > 0]) + 
+                    lgamma(alpha[x > 0]) + lgamma(x[x > 0]) - 
+                    lgamma(alpha[x > 0] + x[x > 0]))
+        
         if(log) return(logProb)
         else return(exp(logProb))
     }
 )
 
 rdirchmulti <- nimbleFunction(
-    run = function(n = integer(0), alpha = double(1), size = double(1)) {
+    run = function(n = double(0), alpha = double(1), size = double(0)) {
         returnType(double(1))
+        
         ## modified from MCMCpack to allow alpha_k = 0
         x <- rgamma(length(alpha) * n, shape = alpha, rate = 1)
         p <- x/sum(x)
