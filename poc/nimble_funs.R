@@ -27,17 +27,13 @@ ddirchmulti <- nimbleFunction(
 rdirchmulti <- nimbleFunction(
     run = function(n = integer(0), alpha = double(1), size = double(1)) {
         returnType(double(1))
-        ## use MCMCpack as it allows alpha_k = 0
-        p <- MCMCpack::rdirichlet(1, alpha)[1, ]
+        ## modified from MCMCpack to allow alpha_k = 0
+        x <- rgamma(length(alpha) * n, shape = alpha, rate = 1)
+        p <- x/sum(x)
         return(rmulti(1, size = size, prob = p))
     }
 )
 
-registerDistributions(list(
-    ddirchmulti = list(
-        BUGSdist = 'ddirchmulti(alpha, size)'
-    )
-))
 
 ## function to run nimble model
 ## Nreads: number of total reads per pool
