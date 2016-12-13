@@ -19,11 +19,17 @@ ddirchmulti <- nimbleFunction(
         alpha0 <- sum(alpha)
         
         ## new log prob that ignores 0's instead of throwing NaN/Inf
-        logProb <- log(size) + 
+        lgammaSum <- numeric(length = length(x), value = 0, init = TRUE)
+        for(i in 1:length(lgammaSum)) {
+            if(x[i] > 0) {
+                lgammaSum[i] <- log(x[i]) + lgamma(alpha[i]) +
+                    lgamma(x[i]) -
+                    lgamma(alpha[i] + x[i])
+            }
+        }
+        logProb <- log(size) +
             lgamma(alpha0) + lgamma(size) - lgamma(alpha0 + size) -
-            sum(log(x[x > 0]) + 
-                    lgamma(alpha[x > 0]) + lgamma(x[x > 0]) - 
-                    lgamma(alpha[x > 0] + x[x > 0]))
+            sum(lgammaSum)
         
         if(log) return(logProb)
         else return(exp(logProb))
@@ -31,12 +37,14 @@ ddirchmulti <- nimbleFunction(
 )
 
 rdirchmulti <- nimbleFunction(
-    run = function(n = double(0), alpha = double(1), size = double(0)) {
+    run = function(n = double(0, default = 1), alpha = double(1), size = double(0)) {
         returnType(double(1))
         
         ## modified from MCMCpack to allow alpha_k = 0
-        x <- rgamma(length(alpha) * n, shape = alpha, rate = 1)
+        x <- numeric(length = length(alpha), value = 0, init = TRUE)
+        for(i in 1:length(x)) x[i] <- rgamma(1, shape = alpha[i], rate = 1)
         p <- x/sum(x)
+        
         return(rmulti(1, size = size, prob = p))
     }
 )
@@ -48,8 +56,6 @@ rdirchmulti <- nimbleFunction(
 ## number_Reads: number of reads per spp per pool (pool = rows; spp = columns)
 
 runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, burn = 50) {
-    browser()
-    
     ## number of pools
     Npool <- length(Nreads)
     
@@ -84,14 +90,6 @@ runNimble <- function(Nreads, amount_DNA, number_Reads, N = 10000, thin = 50, bu
     ## build model
     mod <- nimbleModel(code = modCode, name = 'mod', constants = modConstants, 
                        data = modData, inits = modInits)
-    
-    
-    # mod$simulate('a')
-    # mod$a
-    # mod$calculate(mod$getDependencies(c('a')))
-    # mod$getLogProb('a')
-    
-    # browser()
     
     Cmod <- compileNimble(mod)
     
