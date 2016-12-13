@@ -38,6 +38,3 @@ diffTissueOut <- reRunNimble(diffTissue, diffTissueOut, 'Experiment')
 
 ## save it
 save(diffMarkerOut, diffCyclesOut, diffTissueOut, file = 'nimble_out.RData')
-
-foo <- .internalRunNimble(.formatData(diffTissue, 'Experiment'), 1, N = 100, thin = 1, burn = 1)
-foo
