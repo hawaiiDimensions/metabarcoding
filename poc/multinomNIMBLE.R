@@ -10,6 +10,9 @@ Npool <- 100
 ## number of spp
 Nspp <- 10
 
+## coefficients
+a <- seq(0.1, 10, length = Nspp)
+
 ## number of total reads per pool
 Nreads <- round(runif(Npool, 5000, 30000))
 
@@ -19,8 +22,6 @@ amount_DNA <- matrix(runif(Nspp*Npool, 1, 100), nrow = Npool, ncol = Nspp)
 ## number of reads per spp per pool (pool = rows; spp = columns)
 number_Reads <- t(sapply(1:nrow(amount_DNA), function(i) rmulti(1, Nreads[i], rdirch(1, amount_DNA[i, ]*a))))
 
-## coefficients
-a <- seq(0.1, 10, length = Nspp)
 
 ## the model as NIMBLE code
 modCode <- nimbleCode({
