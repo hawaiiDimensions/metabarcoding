@@ -75,3 +75,27 @@ dev.off()
 ## plotting corrrected read count
 ## ==============================
 
+foo <- matrix(1:6, nrow = 3)
+foo / rowSums(foo) * 1:3
+
+## data from PCR cycle experiments, 14 cycles treatment
+i <- 2
+dat <- .prepData(.formatData(diffCycles, 'PCR_cycles'), i)
+
+## predicted amount DNA
+pred <- predictDNA(y = dat[[3]], n = dat[[1]], x = dat[[2]], A = diffCyclesOut[[1]][[i]])
+
+## naive prediction of DNA amount
+predNaive <- as.vector(dat[[3]] / dat[[1]] * rowSums(dat[[2]]))
+
+pdf('ms/fig_correctedDNA.pdf', width = 5, height = 5)
+
+par(mar = c(3, 3, 0, 0) + 0.5, mgp = c(2, 0.75, 0))
+plot(as.vector(dat[[2]]), predNaive, col = 'gray',
+     xlab = expression('DNA input'~(mu*g)), 
+     ylab = expression('Predicted amount of DNA'~(mu*g)))
+points(pred[, 1], pred[, 2], pch = 16, cex = 0.5)
+segments(x0 = pred[, 1], y0 = pred[, 3], y1 = pred[, 4])
+abline(0, 1, col = 'red')
+
+dev.off()
