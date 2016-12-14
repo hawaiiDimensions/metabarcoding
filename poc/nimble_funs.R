@@ -239,7 +239,7 @@ predictMultiDir <- function(n, x, a) {
 
 ## function to calculate Bayesian R^2 (not general, only for multi-dir)
 ## y is matrix of data (rows = diff values of n)
-## n is vector of number of rials
+## n is vector of number of trials
 ## x is matrix of explanitory variable (same dim as y)
 ## A is matrix of posterior parameter estimates for dirichlet dirstrib
 ## (one row per posterior sample)
@@ -255,6 +255,38 @@ bayesR2 <- function(y, n, x, A) {
     
     out <- c(1 - mean(varR) / varY, quantile(1 - varR / varY, c(0.025, 0.975)))
     names(out) <- c('mean', 'ciLo', 'ciHi')
+    
+    return(out)
+}
+
+
+## function to calculate model-predicted amount of DNA given fitted parameters and data
+## y is matrix of data (number of reads; rows = diff values of n)
+## n is vector of number of trials (total reads)
+## x is matrix of explanitory variable (amount DNA; same dim as y)
+## A is matrix of posterior parameter estimates for dirichlet dirstrib
+## (one row per posterior sample)
+
+predictDNA <- function(y, n, x, A) {
+    out <- sapply(1:nrow(A), function(j) {
+        a <- A[j, ]
+        
+        xcor <- lapply(1:nrow(y), function(i) {
+            ## eigen vector solution to get predicted x
+            B <- matrix(rep(y[i, ]/(n[i] * a), length(a)), ncol = length(a)) %*% diag(a)
+            v1 <- Re(eigen(B)$vectors[, 1])
+            
+            return(v1 * sum(x[i, ]) / sum(v1))
+        })
+        xcor <- unlist(xcor)
+        
+        return(xcor)
+    })
+    
+    out <- aaply(out, 1, function(X) c(mean(X), quantile(X, prob = c(0.05, 0.975))))
+    dimnames(out) <- NULL
+    out <- cbind(as.vector(t(x)), out)
+    colnames(out) <- c('x', 'pred_mean', 'pred_ciLo', 'pred_ciHi')
     
     return(out)
 }
