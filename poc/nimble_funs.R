@@ -145,9 +145,9 @@ buildNRunMod <- function(dat, x, N = 10000, thin = 50, burn = 50) {
     
     ## extract posterior parameter samples and summary from output
     outPar <- lapply(out, function(x) x$par)
-    names(outPar) <- rownames(totReads)
+    names(outPar) <- rownames(fdat[[1]])
     
-    outSumm <- data.frame(rownames(totReads), t(sapply(out, function(x) x$summ)))
+    outSumm <- data.frame(rownames(fdat[[1]]), t(sapply(out, function(x) x$summ)))
     names(outSumm)[1] <- x
     
     return(list(par = outPar, summ = outSumm))
