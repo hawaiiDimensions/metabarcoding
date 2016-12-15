@@ -268,7 +268,7 @@ bayesR2 <- function(y, n, x, A) {
 ## (one row per posterior sample)
 
 predictDNA <- function(y, n, x, A) {
-    out <- sapply(1:nrow(A), function(j) {
+    out <- mclapply(1:nrow(A), mc.cores = 6, FUN = function(j) {
         a <- A[j, ]
         
         xcor <- lapply(1:nrow(y), function(i) {
@@ -283,7 +283,8 @@ predictDNA <- function(y, n, x, A) {
         return(xcor)
     })
     
-    out <- aaply(out, 1, function(X) c(mean(X), quantile(X, prob = c(0.05, 0.975))))
+    out <- aaply(do.call(cbind, out), 1, 
+                 function(X) c(mean(X), quantile(X, prob = c(0.05, 0.975))))
     dimnames(out) <- NULL
     out <- cbind(as.vector(t(x)), out)
     colnames(out) <- c('x', 'pred_mean', 'pred_ciLo', 'pred_ciHi')
