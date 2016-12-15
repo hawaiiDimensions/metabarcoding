@@ -37,7 +37,7 @@ plotR2 <- function(x, ...) {
 
 pdf('ms/fig_r2.pdf', width = 6, height = 4)
 par(mfrow = c(1, 4), oma = c(0, 3, 0, 0) + 0.5, mar = c(6, 0, 3, 0) + 0.5, cex.axis = 1.2)
-ylim <- c(0, 1)
+ylim <- c(0.5, 1)
 
 ## nuc
 plotR2(diffMarkerOut[[2]][match(nuc, diffMarkerOut[[2]]$Primer), ], cex = 1.5, 
